@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Pass-the-Phone Mafia</title>
+    <style>
+        :root {
+            --bg-dark: #1a1a2e;
+            --bg-light: #1f1f3a;
+            --primary-purple: #6a11cb;
+            --primary-blue: #2575fc;
+            --text-light: #f0f0f0;
+            --text-dark: #1a1a2e;
+            --shadow: rgba(0, 0, 0, 0.4);
+            --gradient: linear-gradient(135deg, var(--primary-purple), var(--primary-blue));
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 400px;
+            background-color: var(--bg-light);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px var(--shadow);
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .screen {
+            width: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .screen.active {
+            display: flex;
+            animation: fadeIn 0.5s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        #screen-splash h1 {
+            font-size: 5rem;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: fadeInOut 2.5s ease forwards;
+        }
+        
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: scale(0.8); }
+            50% { opacity: 1; transform: scale(1.1); }
+            100% { opacity: 0; transform: scale(1); }
+        }
+
+        h1, h2, h3 {
+            margin-bottom: 20px;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 700;
+        }
+        
+        h1 { font-size: 2.5rem; }
+        h2 { font-size: 1.8rem; }
+        h3 { font-size: 1.4rem; line-height: 1.5; }
+
+        p {
+            font-size: 1.1rem;
+            margin-bottom: 25px;
+            line-height: 1.6;
+        }
+
+        .button {
+            display: inline-block;
+            width: 100%;
+            padding: 18px;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-light);
+            background: var(--gradient);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-top: 10px;
+        }
+
+        .button:active {
+            transform: translateY(1px);
+        }
+
+        .button-secondary {
+            background: var(--bg-dark);
+            border: 2px solid var(--primary-blue);
+            color: var(--primary-blue);
+        }
+
+        .input-group {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 1rem;
+            margin-bottom: 10px;
+            text-align: left;
+        }
+
+        input[type="number"], input[type="text"] {
+            width: 100%;
+            padding: 15px;
+            font-size: 1.1rem;
+            border-radius: 10px;
+            border: 2px solid var(--bg-dark);
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            text-align: center;
+        }
+        
+        input[type="text"] {
+            text-align: left;
+        }
+
+        #player-inputs {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            z-index: 10;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal-content {
+            background: var(--bg-light);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px var(--shadow);
+            text-align: center;
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        #timer-display {
+            font-size: 3rem;
+            color: var(--text-light);
+            margin-bottom: 15px;
+        }
+        
+        .vote-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 100%;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+
+        <div class="screen active" id="screen-splash">
+            <h1>Mafia</h1>
+        </div>
+
+        <div class="screen" id="screen-welcome">
+            <h1>Mafia</h1>
+            <p>A pass-the-phone game of secret roles and deception.</p>
+            <button class="button" id="start-setup-btn">Start Game</button>
+        </div>
+
+        <div class="screen" id="screen-setup">
+            <h2>Setup</h2>
+            <div class="input-group">
+                <label for="player-count">How many players? (3-10)</label>
+                <input type="number" id="player-count" min="3" max="10" value="3">
+            </div>
+            <button class="button" id="confirm-players-btn">Next</button>
+        </div>
+
+        <div class="screen" id="screen-names">
+            <h2>Player Names</h2>
+            <div id="player-inputs"></div>
+            <button class="button" id="start-roles-btn">Assign Roles</button>
+        </div>
+        
+        <div class="screen" id="screen-pass-role">
+            <h2>Pass the phone to...</h2>
+            <h1 id="pass-player-name-role"></h1>
+            <p>Please make sure only they are looking at the screen.</p>
+            <button class="button" id="reveal-role-btn">I am [Player Name]</button>
+        </div>
+
+        <div class="screen" id="screen-reveal">
+            <h3 id="reveal-player-name">Player Name</h3>
+            <h2>Your role is...</h2>
+            <h1 id="reveal-role"></h1>
+            <p id="role-description"></p>
+            <button class="button" id="hide-role-btn">Got it</button>
+        </div>
+        
+        <div class="screen" id="screen-day">
+            <h2>Discussion</h2> <h1 id="timer-display">2:00</h1>
+            <p>Discuss, defend, and accuse. When the timer ends, you will vote.</p>
+            <button class="button" id="skip-timer-btn">Start Voting Now</button>
+        </div>
+        
+        <div class="screen" id="screen-pass-vote">
+            <h2>Pass the phone to...</h2>
+            <h1 id="pass-player-name-vote"></h1>
+            <p>Please vote secretly.</p>
+            <button class="button" id="show-vote-screen-btn">I am [Player Name]</button>
+        </div>
+        
+        <div class="screen"id="screen-vote">
+            <h2>Who do you vote for?</h2>
+            <p id="vote-prompt-text"></p>
+            <div class="vote-list" id="day-vote-list"></div>
+        </div>
+        
+        <div class="screen" id="screen-tiebreaker">
+            <h2>Vote Tied!</h2>
+            <p>The vote is tied between:</p>
+            <h3 id="tie-players-list"></h3>
+            <p>You have 1 minute to defend yourselves!</p>
+            <h1 id="tie-timer-display">1:00</h1>
+            <button class="button" id="start-revote-btn">Start Re-Vote</button>
+        </div>
+        
+        <div class="screen" id="screen-reveal-vote">
+            <h2>Vote Result</h2>
+            <p id="reveal-vote-text"></p>
+            <button class="button" id="continue-game-btn">Continue</button>
+        </div>
+        
+        <div class="screen" id="screen-game-over">
+            <h2 id="game-over-title"></h2>
+            <p id="game-over-text"></p>
+            <button class="button" id="play-again-btn">Play Again</button>
+        </div>
+
+    </div>
+
+    <div class="modal" id="hold-on-modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Hold on!</h2>
+            <p>Pass to the next player.</p>
+            <button class="button" id="hold-on-btn">Ready</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            
+            // --- State Variables ---
+            let players = []; // { name: 'Player 1', role: 'Mafia', alive: true }
+            let currentPlayerIndex = 0; // For role reveal
+            let currentPlayerVotingIndex = 0; // For voting
+            let voteCounts = {};
+            let tiedPlayers = [];
+            let isReVote = false;
+            let dayVictim = null;
+            let dayTimerInterval = null;
+            let tieTimerInterval = null;
+            
+            const ROLES = {
+                MAFIA: 'Mafia',
+                CIVILIAN: 'Civilian'
+            };
+            
+            const ROLE_DESCRIPTIONS = {
+                [ROLES.MAFIA]: 'You are the Mafia. Your goal is to survive and vote out all the Civilians.',
+                [ROLES.CIVILIAN]: 'You are a Civilian. Your goal is to find and vote out all the Mafia.'
+            };
+
+            // --- Screen Elements ---
+            const screens = {
+                splash: document.getElementById('screen-splash'),
+                welcome: document.getElementById('screen-welcome'),
+                setup: document.getElementById('screen-setup'),
+                names: document.getElementById('screen-names'),
+                passRole: document.getElementById('screen-pass-role'),
+                reveal: document.getElementById('screen-reveal'),
+                day: document.getElementById('screen-day'),
+                passVote: document.getElementById('screen-pass-vote'),
+                vote: document.getElementById('screen-vote'),
+                tiebreaker: document.getElementById('screen-tiebreaker'),
+                revealVote: document.getElementById('screen-reveal-vote'),
+                gameOver: document.getElementById('screen-game-over')
+            };
+
+            // --- Button Elements ---
+            const startSetupBtn = document.getElementById('start-setup-btn');
+            const confirmPlayersBtn = document.getElementById('confirm-players-btn');
+            const startRolesBtn = document.getElementById('start-roles-btn');
+            const revealRoleBtn = document.getElementById('reveal-role-btn');
+            const hideRoleBtn = document.getElementById('hide-role-btn');
+            const skipTimerBtn = document.getElementById('skip-timer-btn');
+            const showVoteScreenBtn = document.getElementById('show-vote-screen-btn');
+            const startRevoteBtn = document.getElementById('start-revote-btn');
+            const continueGameBtn = document.getElementById('continue-game-btn');
+            const playAgainBtn = document.getElementById('play-again-btn');
+            const holdOnBtn = document.getElementById('hold-on-btn');
+
+            // --- Display Elements ---
+            const playerCountInput = document.getElementById('player-count');
+            const playerInputsContainer = document.getElementById('player-inputs');
+            const passPlayerNameRole = document.getElementById('pass-player-name-role');
+            const revealPlayerName = document.getElementById('reveal-player-name');
+            const revealRole = document.getElementById('reveal-role');
+            const roleDescription = document.getElementById('role-description');
+            const timerDisplay = document.getElementById('timer-display');
+            const passPlayerNameVote = document.getElementById('pass-player-name-vote');
+            const votePromptText = document.getElementById('vote-prompt-text');
+            const dayVoteList = document.getElementById('day-vote-list');
+            const tiePlayersList = document.getElementById('tie-players-list');
+            const tieTimerDisplay = document.getElementById('tie-timer-display');
+            const revealVoteText = document.getElementById('reveal-vote-text');
+            const gameOverTitle = document.getElementById('game-over-title');
+            const gameOverText = document.getElementById('game-over-text');
+
+            // --- Modal Elements ---
+            const holdOnModal = document.getElementById('hold-on-modal');
+
+            // --- Utility Functions ---
+            
+            function showScreen(screenId) {
+                Object.values(screens).forEach(screen => screen.classList.remove('active'));
+                screens[screenId].classList.add('active');
+            }
+
+            function shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1)); 
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+            
+            function getAlivePlayers() {
+                return players.filter(p => p.alive);
+            }
+            
+            function getAlivePlayerNames() {
+                return getAlivePlayers().map(p => p.name);
+            }
+            
+            function getAliveCivilians() {
+                return players.filter(p => p.alive && p.role === ROLES.CIVILIAN);
+            }
+
+            function getAliveMafia() {
+                return players.filter(p => p.alive && p.role === ROLES.MAFIA);
+            }
+
+            // --- Game Logic Functions ---
+
+            // Splash screen
+            setTimeout(() => showScreen('welcome'), 2500);
+
+            function setupPlayerNames() {
+                const count = parseInt(playerCountInput.value);
+                playerInputsContainer.innerHTML = '';
+                for (let i = 0; i < count; i++) {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.placeholder = `Player ${i + 1} Name`;
+                    input.value = `Player ${i + 1}`;
+                    playerInputsContainer.appendChild(input);
+                }
+            }
+            
+            function assignRoles() {
+                const nameInputs = document.querySelectorAll('#player-inputs input');
+                players = [];
+                nameInputs.forEach(input => {
+                    players.push({ name: input.value || input.placeholder, role: null, alive: true });
+                });
+
+                let numMafia = (players.length >= 7) ? 2 : 1;
+                let roles = [];
+                for (let i = 0; i < numMafia; i++) roles.push(ROLES.MAFIA);
+                for (let i = 0; i < players.length - numMafia; i++) roles.push(ROLES.CIVILIAN);
+                
+                roles = shuffle(roles);
+                
+                players.forEach((player, index) => player.role = roles[index]);
+                
+                currentPlayerIndex = 0;
+                startRoleReveal();
+            }
+
+            function startRoleReveal() {
+                if (currentPlayerIndex < players.length) {
+                    const player = players[currentPlayerIndex];
+                    passPlayerNameRole.textContent = player.name;
+                    revealRoleBtn.textContent = `I am ${player.name}`;
+                    showScreen('passRole');
+                }
+            }
+
+            function showRole() {
+                const player = players[currentPlayerIndex];
+                revealPlayerName.textContent = player.name;
+                revealRole.textContent = player.role;
+                
+                let description = ROLE_DESCRIPTIONS[player.role];
+                if (player.role === ROLES.MAFIA) {
+                    const otherMafia = players.filter(p => p.role === ROLES.MAFIA && p.name !== player.name);
+                    if (otherMafia.length > 0) {
+                        description += `\n\nYour fellow Mafia is: ${otherMafia.map(p => p.name).join(', ')}.`;
+                    } else {
+                        description += '\n\nYou are the lone Mafia.';
+                    }
+                }
+                roleDescription.textContent = description;
+                showScreen('reveal');
+            }
+
+            function hideRole() {
+                currentPlayerIndex++;
+                if (currentPlayerIndex < players.length) {
+                    holdOnModal.style.display = 'flex';
+                    holdOnBtn.onclick = () => {
+                        holdOnModal.style.display = 'none';
+                        startRoleReveal();
+                    };
+                } else {
+                    holdOnModal.style.display = 'flex';
+                    holdOnBtn.onclick = () => {
+                        holdOnModal.style.display = 'none';
+                        startDay();
+                    };
+                }
+            }
+            
+            function startTimer(duration, display, onEnd) {
+                let secondsLeft = duration;
+                function updateTimer() {
+                    const minutes = Math.floor(secondsLeft / 60);
+                    const seconds = secondsLeft % 60;
+                    display.textContent = `${minutes}:${String(seconds).padStart(2, '0')}`;
+                    if (secondsLeft <= 0) {
+                        clearInterval(dayTimerInterval); // Clear this specific timer
+                        onEnd();
+                    }
+                    secondsLeft--;
+                }
+                updateTimer();
+                return setInterval(updateTimer, 1000);
+            }
+
+            function startDay() {
+                dayVictim = null;
+                isReVote = false;
+                tiedPlayers = [];
+                
+                showScreen('day');
+                
+                dayTimerInterval = startTimer(120, timerDisplay, startVotingPhase);
+            }
+            
+            function startVotingPhase() {
+                clearInterval(dayTimerInterval);
+                voteCounts = {};
+                getAlivePlayers().forEach(p => voteCounts[p.name] = 0);
+                
+                currentPlayerVotingIndex = 0;
+                startVoteTurn();
+            }
+            
+            function startVoteTurn() {
+                const alivePlayers = getAlivePlayers();
+                if (currentPlayerVotingIndex < alivePlayers.length) {
+                    const player = alivePlayers[currentPlayerVotingIndex];
+                    passPlayerNameVote.textContent = player.name;
+                    showVoteScreenBtn.textContent = `I am ${player.name}`;
+                    showScreen('passVote');
+                } else {
+                    tallyVotes();
+                }
+            }
+            
+            function showVoteScreen() {
+                dayVoteList.innerHTML = '';
+                
+                let voteOptions = isReVote ? tiedPlayers : getAlivePlayerNames();
+                votePromptText.textContent = isReVote ? "Vote for who to eliminate:" : "Vote for who you think is Mafia:";
+                
+                voteOptions.forEach(name => {
+                    const button = document.createElement('button');
+                    button.textContent = name;
+                    button.className = 'button button-secondary';
+                    button.dataset.name = name;
+                    button.addEventListener('click', handleVote);
+                    dayVoteList.appendChild(button);
+                });
+                showScreen('vote');
+            }
+            
+            function handleVote(e) {
+                const votedName = e.target.dataset.name;
+                voteCounts[votedName]++;
+                
+                currentPlayerVotingIndex++;
+                
+                holdOnModal.style.display = 'flex';
+                holdOnBtn.onclick = () => {
+                    holdOnModal.style.display = 'none';
+                    startVoteTurn();
+                };
+            }
+            
+            function tallyVotes() {
+                let maxVotes = 0;
+                let playersWithMaxVotes = [];
+                
+                let voteSource = isReVote ? tiedPlayers : getAlivePlayerNames();
+                
+                voteSource.forEach(name => {
+                    if (voteCounts[name] > maxVotes) {
+                        maxVotes = voteCounts[name];
+                        playersWithMaxVotes = [name];
+                    } else if (voteCounts[name] === maxVotes) {
+                        playersWithMaxVotes.push(name);
+                    }
+                });
+
+                if (playersWithMaxVotes.length === 1) {
+                    dayVictim = playersWithMaxVotes[0];
+                    processVoteResult();
+                } else if (!isReVote) {
+                    tiedPlayers = playersWithMaxVotes;
+                    startTiebreaker();
+                } else {
+                    dayVictim = null;
+                    processVoteResult();
+                }
+            }
+
+            function startTiebreaker() {
+                tiePlayersList.textContent = tiedPlayers.join(', ');
+                showScreen('tiebreaker');
+                tieTimerInterval = startTimer(60, tieTimerDisplay, () => {
+                    clearInterval(tieTimerInterval);
+                    startReVote(); 
+                });
+            }
+            
+            function startReVote() {
+                clearInterval(tieTimerInterval);
+                isReVote = true;
+                
+                voteCounts = {};
+                tiedPlayers.forEach(name => voteCounts[name] = 0);
+                
+                currentPlayerVotingIndex = 0;
+                startVoteTurn();
+            }
+
+            function processVoteResult() {
+                if (dayVictim) {
+                    const victimPlayer = players.find(p => p.name === dayVictim);
+                    if (victimPlayer) {
+                        victimPlayer.alive = false;
+                        revealVoteText.innerHTML = `You have voted to eliminate ${victimPlayer.name}. Their role was... <strong>${victimPlayer.role}</strong>.`;
+                    }
+                } else {
+                    revealVoteText.textContent = 'The re-vote was a tie! No one is eliminated.';
+                }
+                showScreen('revealVote');
+            }
+            
+            function checkGameOver() {
+                const aliveMafia = getAliveMafia();
+                const aliveCivilians = getAliveCivilians();
+
+                // --- THIS IS THE FIX ---
+                if (aliveMafia.length === 0) {
+                    gameOverTitle.textContent = "Civilians Win!";
+                    gameOverText.textContent = "All Mafia have been eliminated.";
+                    showScreen('gameOver');
+                    return true;
+                }
+                
+                if (aliveMafia.length >= aliveCivilians.length) {
+                    gameOverTitle.textContent = "Mafia Wins!";
+                    gameOverText.textContent = "The Mafia have taken over.";
+                    showScreen('gameOver');
+                    return true;
+                }
+                
+                return false;
+            }
+            
+            function resetGame() {
+                players = [];
+                currentPlayerIndex = 0;
+                dayVictim = null;
+                clearInterval(dayTimerInterval);
+                clearInterval(tieTimerInterval);
+                playerCountInput.value = 3;
+                showScreen('welcome');
+            }
+
+            // --- Event Listeners ---
+            startSetupBtn.addEventListener('click', () => showScreen('setup'));
+            confirmPlayersBtn.addEventListener('click', () => {
+                const count = parseInt(playerCountInput.value);
+                if (count >= 3 && count <= 10) {
+                    setupPlayerNames();
+                    showScreen('names');
+                } else {
+                    alert('Please enter a number between 3 and 10.');
+                }
+            });
+            startRolesBtn.addEventListener('click', assignRoles);
+            revealRoleBtn.addEventListener('click', showRole);
+            hideRoleBtn.addEventListener('click', hideRole);
+            skipTimerBtn.addEventListener('click', startVotingPhase);
+            showVoteScreenBtn.addEventListener('click', showVoteScreen);
+            startRevoteBtn.addEventListener('click', startReVote);
+            
+            continueGameBtn.addEventListener('click', () => {
+                if (!checkGameOver()) {
+                    startDay();
+                }
+            });
+            
+            playAgainBtn.addEventListener('click', resetGame);
+        });
+    </script>
+</body>
+</html>
