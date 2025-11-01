@@ -4,6 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Pass-the-Phone Mafia</title>
+    
+    <link rel="icon" type="image/jpeg" href="Mafia app icon.jpg"> 
+    <link rel="apple-touch-icon" href="Mafia app icon.jpg">
+    <link rel="shortcut icon" href="Mafia app icon.jpg">
     <style>
         :root {
             --bg-dark: #1a1a2e;
@@ -251,6 +255,7 @@
                 </div>
             <button class="button" id="start-day-from-review-btn">Start Discussion (Day)</button>
         </div>
+        
         <div class="screen" id="screen-day">
             <h2>Discussion</h2> <h1 id="timer-display">2:00</h1>
             <p>Discuss, defend, and accuse. When the timer ends, you will vote.</p>
@@ -323,9 +328,9 @@
         document.addEventListener('DOMContentLoaded', () => {
             
             // --- State Variables ---
-            let players = []; // { name: 'Player 1', role: 'Mafia', alive: true }
-            let currentPlayerIndex = 0; // For role reveal
-            let currentPlayerVotingIndex = 0; // For voting
+            let players = []; 
+            let currentPlayerIndex = 0; 
+            let currentPlayerVotingIndex = 0; 
             let voteCounts = {};
             let tiedPlayers = [];
             let isReVote = false;
@@ -364,7 +369,7 @@
             const startSetupBtn = document.getElementById('start-setup-btn');
             const confirmPlayersBtn = document.getElementById('confirm-players-btn');
             const startRolesBtn = document.getElementById('start-roles-btn');
-            const backToSetupBtn = document.getElementById('back-to-setup-btn'); // NEW REFERENCE
+            const backToSetupBtn = document.getElementById('back-to-setup-btn'); 
             const revealRoleBtn = document.getElementById('reveal-role-btn');
             const hideRoleBtn = document.getElementById('hide-role-btn');
             const skipTimerBtn = document.getElementById('skip-timer-btn');
@@ -709,7 +714,7 @@
                 }
             });
             startRolesBtn.addEventListener('click', assignRoles);
-            backToSetupBtn.addEventListener('click', () => showScreen('setup')); // NEW LISTENER
+            backToSetupBtn.addEventListener('click', () => showScreen('setup'));
             revealRoleBtn.addEventListener('click', showRole);
             hideRoleBtn.addEventListener('click', hideRole);
             skipTimerBtn.addEventListener('click', startVotingPhase);
